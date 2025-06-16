@@ -1,0 +1,108 @@
+﻿Chapitre 1 : Le Modèle MapReduce - Fondements Algorithmiques
+Le Big Data a rendu les méthodes de traitement traditionnelles, qui exécutent les tâches les unes après les autres (traitement séquentiel), inefficaces. La solution est le calcul distribué (répartir les tâches sur un réseau de plusieurs ordinateurs, appelés nœuds ou cluster), qui permet un traitement parallèle (effectuer plusieurs tâches en même temps).
+MapReduce, développé par Google en 2004, est un modèle de programmation qui simplifie le traitement de très grands volumes de données sur des clusters. Il automatise la parallélisation, la distribution des tâches et la gestion des pannes.
+L'approche de MapReduce s'inspire du principe "Diviser pour Régner", mais l'adapte au monde distribué :
+1. Diviser : Le problème principal est découpé en plus petits sous-problèmes.
+2. Distribuer (Map) : Chaque sous-problème est envoyé à un nœud différent du cluster pour y être traité.
+3. Régner (Reduce) : Les résultats de chaque nœud sont collectés et combinés pour former la solution finale.
+Chapitre 2 : Le Fonctionnement du MapReduce
+Le processus MapReduce se déroule en plusieurs phases clés. Les données sont toujours représentées sous forme de paires (clé, valeur).
+1. Split (Découpage) : Le fichier de données d'entrée est divisé logiquement en fragments de taille configurable (généralement 64 ou 128 Mo), appelés InputSplits. Chaque Split sera traité par une tâche Map.
+2. Map (Transformation) : C'est la première étape de traitement. Une fonction Map, définie par l'utilisateur, est appliquée à chaque Split. Elle lit les données et les transforme en de nouvelles paires (clé, valeur) intermédiaires. Par exemple, pour compter des mots, la fonction Map peut produire une paire (mot, 1) pour chaque mot rencontré.
+3. Shuffle & Sort (Brassage et Tri) : C'est une phase intermédiaire cruciale mais souvent un goulot d'étranglement (un point qui ralentit tout le processus).
+   * Les résultats intermédiaires de toutes les tâches Map sont regroupés.
+   * Les paires sont triées par clé.
+   * Toutes les valeurs associées à la même clé sont fusionnées en une seule liste. Exemple : (mot, 1), (mot, 1) devient (mot, [1, 1]).
+4. Reduce (Agrégation) : La fonction Reduce, également définie par l'utilisateur, prend en entrée les paires générées par la phase Shuffle & Sort. Elle traite la liste de valeurs pour chaque clé afin de produire un résultat final agrégé. Pour notre exemple de comptage de mots, elle additionnerait les 1 pour obtenir le total : (mot, 2).
+5. Combiner (Optimisation) : C'est une étape optionnelle mais très utile. Un Combiner (Combiner) est une sorte de "mini-Reduce" qui s'exécute sur chaque nœud Map avant la phase Shuffle. Il pré-agrège les résultats localement pour réduire la quantité de données à transférer sur le réseau, améliorant ainsi les performances.
+Chapitre 3 : L'Architecture MapReduce dans Hadoop 1.x
+Dans la première version de Hadoop, l'architecture MapReduce est de type Maître/Esclave.
+* JobTracker (Le Maître) : C'est le coordinateur central.
+   * Il reçoit les jobs (tâches) des clients.
+   * Il divise le travail et l'assigne aux esclaves.
+   * Il surveille l'avancement et gère les pannes.
+   * C'est un point unique de défaillance (SPOF - Single Point of Failure) : s'il tombe en panne, tout le système s'arrête.
+* TaskTrackers (Les Esclaves) : Ils tournent sur chaque nœud de données du cluster.
+   * Ils exécutent les tâches Map et Reduce qui leur sont assignées par le JobTracker.
+   * Ils communiquent leur état régulièrement au JobTracker via des heartbeats (signaux de vie). S'il ne reçoit plus de heartbeat, le JobTracker considère l'esclave comme mort et réassigne ses tâches.
+   * Chaque TaskTracker dispose d'un nombre fixe de slots (emplacements) pour exécuter des tâches Map ou Reduce.
+La localité des données (data locality) est un principe clé : le JobTracker essaie toujours d'assigner une tâche Map à un TaskTracker qui tourne sur la machine où les données sont physiquement stockées, afin d'éviter les transferts réseau coûteux.
+Chapitre 4 : MapReduce - Classes Fondamentales
+Plusieurs classes Java sont essentielles au fonctionnement de MapReduce :
+* InputFormat : Définit comment les données d'entrée sont découpées (InputSplit) et lues. TextInputFormat est le plus courant, traitant chaque ligne d'un fichier texte comme un enregistrement.
+* InputSplit : Représente un fragment de données à traiter par une seule tâche Map. C'est une référence logique, pas les données elles-mêmes.
+* RecordReader : Lit les données d'un InputSplit et les transforme en paires (clé, valeur) pour la fonction Map.
+* Types de Données Hadoop : Hadoop utilise ses propres types de données optimisés pour la sérialisation (le processus de conversion d'un objet en un flux de bytes pour le transfert réseau ou le stockage). Ils implémentent l'interface Writable (pour la sérialisation) et WritableComparable (pour la comparaison/tri). Exemples : Text (pour String), IntWritable (pour int).
+Chapitre 5 : MapReduce - Étapes d'exécution d'un job
+1. Soumission : Le client soumet un job au JobTracker.
+2. Initialisation : Le JobTracker attribue un ID unique au job et prépare les ressources nécessaires. Il calcule les Splits et copie les fichiers du job (le code JAR) sur HDFS.
+3. Assignation des Tâches : Le JobTracker assigne les tâches Map et Reduce aux TaskTrackers en fonction de la disponibilité des slots et de la localité des données.
+4. Exécution : Chaque TaskTracker lance une machine virtuelle Java (JVM) distincte pour exécuter sa tâche. Les résultats de Map sont stockés localement sur le disque du TaskTracker.
+5. Shuffle et Reduce : Les TaskTrackers exécutant les tâches Reduce récupèrent les résultats intermédiaires pertinents auprès des TaskTrackers Map.
+6. Écriture du Résultat : Les résultats finaux des tâches Reduce sont écrits sur HDFS pour garantir leur durabilité et leur tolérance aux pannes.
+7. Complétion : Une fois toutes les tâches terminées, le JobTracker marque le job comme réussi et le client est notifié.
+Chapitre 6 : Évolution vers YARN
+MapReduce v1 avait des limitations majeures :
+* Scalabilité limitée : Le JobTracker devenait un goulot d'étranglement au-delà de 4000 nœuds.
+* Surcharge du JobTracker : Il gérait à la fois les ressources du cluster ET le cycle de vie des applications.
+* Utilisation inefficace des ressources : Les slots Map et Reduce étaient fixes et ne pouvaient pas être utilisés de manière flexible.
+* Support exclusif de MapReduce : Il était impossible d'exécuter d'autres types d'applications (comme le streaming ou le traitement de graphes).
+YARN (Yet Another Resource Negotiator) a été introduit dans Hadoop 2.0 pour résoudre ces problèmes. Il sépare les deux responsabilités du JobTracker :
+1. La gestion des ressources.
+2. La gestion du cycle de vie de l'application.
+Chapitre 7 : YARN - Étapes d'Exécution d'une Application
+L'architecture de YARN est plus flexible et plus robuste.
+Composants Centraux de YARN :
+* ResourceManager (RM) : Le maître global. Il est uniquement responsable de l'allocation des ressources à travers le cluster. Il ne surveille pas les tâches.
+* NodeManager (NM) : L'esclave de YARN, qui tourne sur chaque nœud. Il gère les ressources de sa machine (CPU, RAM), lance les conteneurs (des allocations de ressources), et rapporte leur état au ResourceManager.
+* ApplicationMaster (AM) : Il y a un ApplicationMaster pour chaque application soumise au cluster. Il négocie les ressources nécessaires (conteneurs) avec le ResourceManager et travaille avec les NodeManagers pour exécuter et surveiller les tâches de son application. C'est un "JobTracker" par application.
+Déroulement d'une application sur YARN :
+1. Soumission : Un client soumet une application au ResourceManager.
+2. Lancement de l'ApplicationMaster : Le RM alloue un conteneur sur un NodeManager pour lancer l'ApplicationMaster de cette application.
+3. Négociation des Ressources : L'AM demande au RM les conteneurs dont il a besoin pour exécuter ses tâches.
+4. Lancement des Tâches : Une fois les conteneurs alloués par le RM, l'AM contacte directement les NodeManagers correspondants pour lancer les tâches dans ces conteneurs.
+5. Exécution : Les tâches s'exécutent dans leurs conteneurs, et l'AM surveille leur progression.
+6. Fin : Lorsque l'application est terminée, l'AM se désenregistre auprès du RM, qui libère alors le conteneur de l'AM.
+Cette architecture permet à YARN d'être multi-tenant (faire tourner simultanément différents types d'applications comme MapReduce, Spark, Flink, etc.) sur le même cluster, avec un partage dynamique et efficace des ressources.
+Commandes et Instructions Techniques (Exemples)
+Voici les pseudo-codes pour l'exemple de comptage de mots (WordCount).
+1. Fonction Map (en Python)
+# La fonction Map est appliquée à chaque paire (clé, valeur) en entrée.
+# Ici, la clé est la position dans le fichier (ignorée), et la valeur est une ligne de texte.
+def map(key, value):
+ # Sépare la ligne en mots.
+ words = value.split()
+ # Pour chaque mot...
+ for word in words:
+   # ...émet une paire (mot, 1).
+   emit(word, 1)
+
+* Commentaire : Cette fonction prend une ligne de texte, la découpe en mots et génère un "ticket" avec la valeur 1 pour chaque mot trouvé.
+2. Fonction Reduce (en Python)
+# La fonction Reduce reçoit une clé (un mot) et la liste de toutes les valeurs associées ([1, 1, 1, ...]).
+def reduce(key, values):
+ # Initialise un compteur à zéro.
+ total = 0
+ # Pour chaque valeur dans la liste (chaque '1')...
+ for v in values:
+   # ...ajoute-la au total.
+   total = total + v
+ # Émet le résultat final : le mot et son nombre total d'occurrences.
+ emit(key, total)
+
+
+* Commentaire : Cette fonction rassemble tous les "tickets" pour un même mot et les additionne pour obtenir le compte final.
+
+
+
+
+3. Fonction Combine (Optionnelle)
+# La fonction Combiner est souvent identique à la fonction Reduce.
+# Elle est exécutée localement sur chaque nœude avant le transfert réseau.
+def combine(key, values):
+ # Fait la somme des '1' pour une même clé sur la machine locale.
+ total = sum(values)
+ # Émet un résultat partiel (mot, somme_partielle).
+ yield(key, total)
+
+* Commentaire : Au lieu d'envoyer (mot, 1), (mot, 1), (mot, 1) sur le réseau, le combineur enverra directement (mot, 3), réduisant ainsi massivement le trafic.

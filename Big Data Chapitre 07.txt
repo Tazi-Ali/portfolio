@@ -1,0 +1,188 @@
+﻿Résumé Simplifié : Apache Hive - Le Data Warehouse de Hadoop
+Ce document est une synthèse du cours sur Apache Hive, organisée en chapitres pour une compréhension claire et une révision efficace. Les termes techniques sont expliqués et simplifiés.
+Chapitre 1 : L'Histoire d'Apache Hive
+Contexte : Le problème de Facebook (2006)
+* Situation : Facebook gérait d'énormes volumes de données (2 téraoctets par jour) avec une petite équipe d'ingénieurs (5 personnes) qui maîtrisaient Java et MapReduce.
+* Le défi : Les analystes de données (25 personnes), experts en SQL mais pas en Java, demandaient plus de 50 analyses par jour. Chaque analyse simple prenait 2 à 3 jours à développer en MapReduce, ce qui créait un énorme goulot d'étranglement (un point de blocage) et ralentissait les décisions.
+La Solution : L'Innovation Apache Hive
+* L'idée : "Et si on pouvait utiliser du SQL sur Hadoop ?"
+* La réponse technique :
+   * HiveQL : Un langage de requête très similaire au SQL, conçu pour fonctionner sur Hadoop.
+   * MetaStore : Un catalogue central pour stocker les informations sur les données (schémas des tables, emplacements, etc.).
+   * Compilateur : Un outil qui traduit automatiquement les requêtes HiveQL en tâches MapReduce complexes.
+* L'impact immédiat : Le temps d'analyse est passé de 3 jours à 30 minutes, rendant les analystes autonomes et démocratisant (rendant accessible à tous) l'accès au Big Data.
+Chapitre 2 : Introduction à Apache Hive
+Qu'est-ce que Hive ?
+* Hive est une surcouche analytique (un logiciel qui s'ajoute par-dessus un autre système) qui permet de voir les fichiers stockés dans HDFS (le système de fichiers de Hadoop) comme s'il s'agissait de tables dans une base de données classique.
+* Il agit comme un Data Warehouse (entrepôt de données) pour Hadoop, facilitant l'analyse de très grands volumes de données.
+
+
+
+
+Architecture et Composants Clés
+1. Clients Hive : Différentes manières de se connecter à Hive.
+   * JDBC/ODBC : Pour les outils d'analyse et de Business Intelligence comme Tableau, Power BI ou même Excel.
+   * CLI (Interface en Ligne de Commande) : Pour interagir directement avec Hive via un terminal.
+   * Interface Web (Hue) : Une interface utilisateur graphique pour utiliser Hadoop et Hive.
+2. Services Hive : Le "cerveau" de Hive.
+   * Driver : Le chef d'orchestre. Il reçoit les requêtes des utilisateurs.
+   * Compiler (Compilateur) : Il vérifie la requête, demande les informations sur les tables au MetaStore, et crée un plan d'exécution (un plan d'action, souvent un DAG - Graphe Acyclique Dirigé).
+   * Optimizer (Optimiseur) : Il améliore le plan d'action pour que la tâche s'exécute plus vite.
+   * Execution Engine (Moteur d'exécution) : Il lance les tâches (jobs MapReduce) sur le cluster Hadoop.
+3. MetaStore : Le Catalogue Central
+   * C'est le référentiel des métadonnées (les données qui décrivent d'autres données).
+   * Il stocke des informations cruciales comme : le nom des tables, le nom des colonnes et leurs types, où les fichiers de données sont stockés, et comment les données sont formatées (par exemple, séparées par des virgules).
+   * Ces informations sont généralement stockées dans une base de données relationnelle externe (comme MySQL ou PostgreSQL).
+Flux de Traitement d'une Requête HiveQL
+1. L'utilisateur envoie une requête (ex: SELECT * FROM clients;).
+2. Le Driver la reçoit et la passe au Compilateur.
+3. Le Compilateur demande au MetaStore : "Où se trouvent les données de la table clients et à quoi ressemblent-elles ?".
+4. Le Compilateur génère un plan logique pour exécuter la requête.
+5. L'Optimiseur améliore ce plan.
+6. Le plan est transformé en jobs MapReduce.
+7. Le Moteur d'exécution envoie ces jobs au cluster Hadoop pour qu'ils soient exécutés.
+8. Les résultats sont récupérés depuis HDFS et renvoyés à l'utilisateur.
+Chapitre 3 : Utilisation de Hive
+Types de Données
+* Primitifs : Les types de base comme INT (entier), BIGINT (grand entier), DOUBLE (nombre à virgule), STRING (texte), DATE (date), BOOLEAN (vrai/faux).
+* Complexes (L'un des grands avantages de Hive) :
+   * ARRAY : Une liste d'éléments de même type (ex: ['sport', 'musique', 'voyage']).
+   * MAP : Un ensemble de paires clé-valeur (ex: { 'nom': 'Dupont', 'ville': 'Paris' }).
+   * STRUCT : Regroupe plusieurs champs sous un même nom, comme une adresse qui contient une rue, une ville et un code postal.
+Bases de Données et Tables
+* Bases de Données (Databases) : Similaires aux schémas en SQL, elles servent à organiser les tables.
+* Tables : Il en existe deux types principaux.
+   1. Tables Internes (Managed Tables) :
+      * Concept : Hive gère tout : les données et les métadonnées. Hive est le "propriétaire" des données.
+      * Comportement clé : Si vous supprimez une table interne (DROP TABLE), Hive supprime à la fois les métadonnées ET les fichiers de données sous-jacents dans HDFS.
+      * Quand les utiliser ? Pour des données temporaires ou quand les données sont exclusivement utilisées et gérées par Hive.
+   2. Tables Externes (External Tables) :
+      * Concept : Hive ne gère que les métadonnées (le "catalogue"). L'utilisateur reste propriétaire des fichiers de données.
+      * Comportement clé : Si vous supprimez une table externe (DROP TABLE), Hive ne supprime que les métadonnées. Les fichiers de données dans HDFS restent intacts.
+      * Quand les utiliser ? C'est le cas le plus courant. Idéal pour les données partagées entre plusieurs outils (Hive, Spark, etc.) ou lorsque vous voulez conserver les données même si la table est supprimée.
+Chapitre 4 : Formats de Fichiers
+Le choix du format de fichier est crucial pour la performance, l'espace de stockage et la compatibilité.
+Formats Orientés Ligne (Row-based)
+* Les données d'une même ligne sont stockées ensemble. Idéal pour les opérations qui lisent des lignes entières (ex: SELECT * FROM ... WHERE id = 123).
+* TEXTFILE :
+   * Format par défaut. Lisible par l'homme (texte simple).
+   * Utilisation : Prototypage, débogage, échange de données simple.
+* SEQUENCEFILE :
+   * Format binaire (non lisible par l'homme) et compressé. Plus performant que TEXTFILE.
+   * Utilisation : Données intermédiaires dans des pipelines de traitement.
+* AVRO :
+   * Format binaire qui intègre le schéma (la structure des données) dans le fichier lui-même.
+   * Avantage majeur : Gère très bien l'évolution de schéma (si vous ajoutez/supprimez une colonne plus tard). Parfait pour l'intégration entre différents systèmes (ex: Kafka et Hadoop).
+Formats Orientés Colonne (Columnar)
+* Les données d'une même colonne sont stockées ensemble. C'est une innovation majeure pour l'analytique.
+* Avantages :
+   * Compression exceptionnelle : Comme les données d'une même colonne sont souvent similaires, elles se compressent très bien (jusqu'à 70-80% de réduction d'espace).
+   * Lecture sélective (Projection pushdown) : Si vous faites une requête SELECT nom, prenom FROM ..., Hive ne lit que les fichiers des colonnes "nom" et "prenom", ignorant toutes les autres. C'est extrêmement rapide.
+* ORC (Optimized Row Columnar) :
+   * Format colonnaire optimisé spécifiquement pour Hive.
+   * Très haute performance, supporte les index pour un accès encore plus rapide.
+   * Utilisation : Environnements où la performance des requêtes dans Hive est la priorité absolue.
+* PARQUET :
+   * Le standard de l'industrie pour le stockage de données analytiques.
+   * Développé par Cloudera et Twitter, il est compatible avec tout l'écosystème Big Data (Spark, Impala, etc.).
+   * Utilisation : Le choix par défaut pour les Data Lakes et les analyses multi-outils.
+Commandes et Instructions Techniques Expliquées
+Voici une sélection des commandes Hive les plus importantes vues dans le document, avec des explications.
+Interfaces en Ligne de Commande
+* hive (Ancienne interface CLI)
+-- Se connecter à l'interface traditionnelle (dépréciée)
+$ hive
+hive> SELECT * FROM clients;
+
+   * Commentaire : Simple mais moins sécurisée. Nécessite une installation locale des librairies Hive.
+   * beeline (Interface Moderne)
+-- Se connecter à HiveServer2 via beeline (méthode recommandée)
+-- L'URL spécifie le protocole (jdbc:hive2), l'hôte (localhost) et le port (10000)
+$ beeline -u jdbc:hive2://localhost:10000
+beeline> SELECT * FROM clients;
+
+      * Commentaire : Plus sécurisée, permet l'authentification et peut être utilisée à distance. C'est la norme aujourd'hui.
+Gestion des Bases de Données
+-- Crée une base de données nommée 'EMSI' si elle n'existe pas déjà
+CREATE DATABASE IF NOT EXISTS EMSI
+-- Ajoute une description
+COMMENT 'Base de données pour l'école EMSI'
+-- Spécifie un emplacement personnalisé dans HDFS pour cette base de données
+LOCATION '/user/hive/project/EMSI.db';
+
+-- Affiche toutes les bases de données
+SHOW DATABASES;
+
+-- Utilise la base de données EMSI pour les commandes suivantes
+USE EMSI;
+
+-- Supprime la base de données et toutes les tables qu'elle contient
+DROP DATABASE IF EXISTS EMSI CASCADE;
+
+Création de Tables
+      * Table Interne (Managed)
+CREATE TABLE clients_internes (
+ id INT,
+ nom STRING,
+ email STRING
+)
+-- Indique que les champs sont séparés par une virgule
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+-- Spécifie le format de fichier (le plus simple)
+STORED AS TEXTFILE;
+
+         * Commentaire : Hive contrôle le cycle de vie de cette table. Les données seront stockées dans le dossier par défaut de Hive (/user/hive/warehouse/...).
+         * Table Externe
+CREATE EXTERNAL TABLE clients_externes (
+ id INT,
+ nom STRING,
+ email STRING
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+-- On spécifie l'emplacement des fichiers de données dans HDFS
+LOCATION '/user/donnees/clients/';
+
+            * Commentaire : Hive ne fait que pointer vers les données. Si on DROP cette table, les fichiers dans /user/donnees/clients/ ne seront PAS supprimés.
+Création de Tables avec des Formats de Fichiers Avancés
+            * Table au format ORC
+CREATE TABLE ventes_orc (
+ date_vente DATE,
+ produit STRING,
+ quantite INT
+)
+-- Spécifie le format de stockage optimisé ORC
+STORED AS ORC
+-- Propriétés de la table pour optimiser la performance
+TBLPROPERTIES (
+ 'orc.compress'='SNAPPY',          -- Utilise la compression Snappy (bon équilibre vitesse/taille)
+ 'orc.stripe.size'='67108864',     -- Définit la taille des blocs de données (64MB)
+ 'orc.row.index.stride'='10000'    -- Crée un index toutes les 10 000 lignes pour des recherches rapides
+);
+
+            * Table au format PARQUET
+CREATE EXTERNAL TABLE ventes_parquet (
+ date_vente DATE,
+ region STRING,
+ produit STRING
+)
+-- Spécifie le format de stockage standard Parquet
+STORED AS PARQUET
+LOCATION '/data/ventes_parquet/';
+
+Conversion entre Formats
+Hive facilite la conversion de données d'un format à un autre en utilisant INSERT et SELECT.
+-- Étape 1 : Créer la table de destination avec le nouveau format (ORC)
+CREATE TABLE ventes_orc (
+ date_vente DATE,
+ produit STRING,
+ quantite INT
+)
+STORED AS ORC;
+
+-- Étape 2 : Lire les données de la table source (ventes_text) et les insérer dans la nouvelle table (ventes_orc)
+-- Hive s'occupe de la conversion automatiquement.
+INSERT OVERWRITE TABLE ventes_orc
+SELECT * FROM ventes_text;
+
+               * Commentaire : INSERT OVERWRITE vide d'abord la table de destination avant d'y insérer les nouvelles données. C'est une méthode très efficace pour changer le format de stockage d'un jeu de données.

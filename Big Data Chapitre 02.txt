@@ -1,0 +1,58 @@
+﻿Résumé Simplifié : L'Écosystème du Big Data
+Ce document explique comment les systèmes Big Data sont construits, comment ils fonctionnent et comment ils s'intègrent avec les technologies déjà en place. L'objectif est de pouvoir gérer et analyser d'énormes quantités de données que les systèmes traditionnels ne peuvent pas traiter.
+Chapitre 1 : Les Idées Clés de l'Architecture Distribuée
+Contrairement aux systèmes classiques où tout est au même endroit (centralisé), le Big Data utilise une architecture distribuée. Cela repose sur quatre grands principes :
+1. Distribution Horizontale : Au lieu d'avoir un seul super-ordinateur très puissant (ce qui coûte cher), on utilise plusieurs ordinateurs standards connectés en réseau. Les données et les calculs sont répartis entre eux. C'est ce qu'on appelle aussi le (scaling horizontal).
+2. Parallélisation Native : Les tâches (comme les calculs ou les analyses) sont découpées en plus petites parties et exécutées en même temps (en parallèle) sur différentes machines. Cela rend le traitement beaucoup plus rapide.
+3. Tolérance aux Pannes : Les systèmes Big Data sont conçus pour que si une machine tombe en panne, le système continue de fonctionner sans interruption. Les données sont souvent copiées et stockées à plusieurs endroits (réplication) pour ne rien perdre.
+4. Localité des Données : Pour éviter de déplacer de grandes quantités de données sur le réseau (ce qui est lent), on déplace le traitement (le calcul) directement sur la machine où les données sont stockées.
+Chapitre 2 : Le Théorème CAP - Le Dilemme du Big Data
+Le théorème CAP est une règle fondamentale pour les systèmes distribués. Il dit qu'un système ne peut garantir que deux de ces trois propriétés en même temps :
+* Cohérence (Consistency) : Tous les utilisateurs voient la même version des données au même moment.
+* Disponibilité (Availability) : Le système est toujours accessible et répond aux demandes.
+* Tolérance à la Partition (Partition Tolerance) : Le système continue de fonctionner même s'il y a une coupure de communication entre les différentes machines du réseau.
+Dans le Big Data, la tolérance à la partition est essentielle. Les systèmes doivent donc choisir entre la cohérence et la disponibilité.
+* Systèmes CP (Cohérence + Partition) : Préfèrent garantir que les données sont toujours justes, même si cela signifie refuser une requête. (Ex: MongoDB, HBase).
+* Systèmes AP (Disponibilité + Partition) : Préfèrent être toujours disponibles, même si cela signifie que certaines données peuvent ne pas être à jour immédiatement. (Ex: Cassandra, DynamoDB).
+Chapitre 3 : L'Anatomie d'un Système Big Data (Architecture en 5 Couches)
+Un système Big Data est généralement organisé en plusieurs couches, chacune avec un rôle précis :
+1. Couche d'Ingestion : C'est la porte d'entrée. Elle collecte les données brutes de sources variées (applications, capteurs, logs, etc.).
+   * Technologies : Kafka, Flume.
+2. Couche de Stockage : Une fois collectées, les données sont stockées de manière fiable et distribuée.
+   * Technologies : HDFS (Hadoop Distributed File System), Bases de données NoSQL comme HBase.
+3. Couche de Traitement : C'est le moteur du système. Cette couche transforme, nettoie et prépare les données pour l'analyse. C'est ici que les calculs complexes ont lieu.
+   * Technologies : Spark, MapReduce.
+4. Couche d'Analyse : Sur cette couche, on exécute des requêtes et des modèles (analytiques) pour extraire des informations utiles des données préparées.
+   * Technologies : Hive (pour faire des requêtes SQL sur de gros volumes), Spark MLlib (pour le Machine Learning).
+5. Couche de Visualisation : C'est la partie visible. Elle présente les résultats de l'analyse sous forme de graphiques, de tableaux de bord et de rapports pour que les utilisateurs puissent les comprendre facilement.
+   * Technologies : Tableau, Power BI.
+Chapitre 4 : Intégration avec les Systèmes Existants
+On n'est pas obligé de tout jeter pour passer au Big Data. Il existe plusieurs manières de faire cohabiter les anciens et les nouveaux systèmes.
+* Stratégies d'Intégration :
+   * Extraction Périodique : On copie les données des anciens systèmes vers le système Big Data à intervalles réguliers (par exemple, toutes les nuits).
+   * Capture des Changements : On surveille les anciens systèmes et on copie uniquement les nouvelles données ou les modifications dès qu'elles se produisent.
+   * APIs (Interfaces de Programmation) : On crée des "ponts" pour que les anciens et les nouveaux systèmes puissent communiquer et s'échanger des données directement.
+* Deux Façons de Traiter les Données :
+   * Traitement par lots (Batch) : On traite de grands volumes de données accumulées sur une période (par ex., générer un rapport des ventes de la veille). C'est efficace mais pas instantané.
+   * Traitement en continu (Streaming) : On traite les données en temps réel, dès leur arrivée. C'est plus complexe mais indispensable pour des applications comme la détection de fraude.
+   * Approche Hybride (Lambda) : Combine les deux. Une couche "batch" pour des analyses précises sur de grands historiques et une couche "streaming" pour des résultats rapides et immédiats.
+Chapitre 5 : Les Fonctionnalités de Base du Big Data
+Deux concepts sont au cœur du fonctionnement du Big Data :
+1. Stockage Distribué : Pour stocker un fichier très volumineux, on le découpe en plus petits morceaux (blocs) qui sont répartis sur plusieurs machines. Chaque bloc est copié plusieurs fois pour la sécurité (tolérance aux pannes).
+   * Exemple : Un fichier de 1 Go peut être divisé en 8 blocs de 128 Mo, stockés sur 3 machines différentes.
+2. Traitement Distribué (Exemple : MapReduce)
+C'est une méthode pour traiter ces données distribuées. Elle se fait en trois étapes :
+   * Map (Diviser et Traiter) : Chaque machine travaille sur sa propre portion de données pour effectuer une première partie du calcul (par exemple, compter les mots dans un texte).
+   * Shuffle (Regrouper) : Les résultats intermédiaires sont triés et regroupés. Tous les résultats concernant le même mot sont envoyés à la même machine.
+   * Reduce (Combiner) : La machine qui a reçu les résultats regroupés fait la somme finale pour obtenir le résultat global (par exemple, le nombre total d'occurrences de chaque mot).
+Glossaire des Technologies Mentionnées
+Voici les outils et technologies cités dans le document, qui sont des exemples concrets des concepts expliqués. Il est utile de savoir à quoi ils servent.
+   * HDFS (Hadoop Distributed File System) : Système de fichiers pour stocker de très gros fichiers sur un (cluster) d'ordinateurs. (Couche de Stockage).
+   * MapReduce : Modèle de programmation pour traiter de gros volumes de données en parallèle. (Couche de Traitement).
+   * Spark : Moteur de calcul unifié, plus rapide et plus flexible que MapReduce. Il peut faire du batch, du streaming et du machine learning. (Couche de Traitement/Analyse).
+   * Kafka : Plateforme pour gérer des flux de données en temps réel. (Couche d'Ingestion).
+   * HBase : Base de données NoSQL conçue pour stocker des milliards de lignes. Idéale pour des accès rapides à des données spécifiques. (Couche de Stockage).
+   * Cassandra / DynamoDB : Bases de données NoSQL très performantes, qui privilégient la disponibilité (modèle AP du théorème CAP).
+   * MongoDB : Base de données NoSQL orientée document, qui privilégie la cohérence (modèle CP).
+   * Hive : Permet d'utiliser le langage SQL pour interroger de gros volumes de données stockées sur HDFS. (Couche d'Analyse).
+   * Tableau / Power BI : Outils de (Business Intelligence) pour créer des visualisations de données et des tableaux de bord interactifs. (Couche de Visualisation).

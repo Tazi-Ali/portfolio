@@ -1,0 +1,135 @@
+﻿Introduction
+Ce document présente Apache Pig, un outil de la famille Hadoop conçu pour simplifier le traitement de très grands ensembles de données (Big Data). Nous allons voir pourquoi il a été créé, comment il fonctionne et comment l'utiliser à travers son langage : Pig Latin.
+Chapitre 1 : Les Limites de MapReduce et la Solution Pig
+Avant Pig, le traitement des données dans Hadoop se faisait principalement avec MapReduce. Cependant, MapReduce présente plusieurs défis :
+* Verbosité excessive (Code trop long) : Il faut écrire beaucoup de code Java, même pour des tâches simples comme compter des mots.
+* Complexité : Il faut gérer manuellement des classes complexes (Map, Reduce), ce qui rend le code difficile à écrire et à maintenir.
+* Courbe d'apprentissage abrupte (Difficile à apprendre) : Nécessite une bonne maîtrise de Java et des concepts de Hadoop.
+* Logique métier masquée (Objectif principal noyé dans le code) : L'intention principale du programme (par exemple, "filtrer les clients d'une ville") est souvent perdue dans les détails techniques de l'implémentation.
+Apache Pig a été développé par Yahoo! pour résoudre ces problèmes. C'est une couche d'abstraction (une surcouche qui simplifie l'utilisation) au-dessus de MapReduce. Son but est de permettre d'analyser de grandes quantités de données avec un langage de plus haut niveau, plus simple et plus intuitif que Java.
+Chapitre 2 : L'Architecture et le Fonctionnement de Pig
+Pig est composé de deux éléments principaux :
+1. Pig Latin : Le langage utilisé pour écrire les scripts de traitement de données.
+2. Environnement d'exécution : Le système qui prend un script Pig Latin et le transforme en tâches exécutables sur un cluster Hadoop.
+Le processus de transformation d'un script Pig en un job MapReduce se déroule en plusieurs étapes :
+1. Analyse (Parsing) : Le Parser vérifie la syntaxe de votre script Pig Latin. Il crée ensuite un graphe acyclique dirigé (DAG), qui est un plan logique représentant le flux de vos données et les opérations à effectuer.
+2. Optimisation : L'Optimizer réorganise ce plan logique pour améliorer les performances (par exemple, en fusionnant des opérations ou en filtrant les données le plus tôt possible).
+3. Compilation : Le Compiler traduit le plan logique optimisé en une série de jobs MapReduce physiques.
+4. Exécution : L'Execution Engine envoie ces jobs au cluster Hadoop pour qu'ils soient exécutés, puis il collecte et présente les résultats.
+Chapitre 3 : Le Modèle de Données de Pig
+Pig Latin possède ses propres types de données pour manipuler l'information.
+Types de données primitifs (simples) :
+* int, long : pour les nombres entiers.
+* float, double : pour les nombres à virgule.
+* chararray : pour les chaînes de caractères (texte).
+* bytearray : pour des données binaires.
+* boolean : pour les valeurs Vrai/Faux (True/False).
+Types de données complexes (structurés) :
+* Atom : C'est la plus petite unité de donnée, équivalente à un champ ou une cellule dans un tableau (ex: 45, 'Paris').
+* Tuple : C'est un enregistrement, une collection ordonnée de champs, comme une ligne dans une table de base de données. On le représente avec des parenthèses ().
+   * Exemple : ('Dupont', 'Jean', 45)
+* Bag : C'est une collection (un sac) non ordonnée de tuples. C'est l'équivalent d'une table. On le représente avec des accolades {}.
+   * Exemple : {(Rabat, 2008), (Lyon, 2010)}
+* Map : C'est un ensemble de paires clé-valeur. Utile pour les données semi-structurées. On le représente avec des crochets [].
+   * Exemple : [nom#Ali, age#10]
+Chapitre 4 : Environnements et Modes d'Exécution
+Vous pouvez exécuter des scripts Pig de deux manières :
+1. Mode Local (-x local) :
+   * Objectif : Pour le développement, le prototypage et les tests.
+   * Fonctionnement : Pig s'exécute sur une seule machine (votre ordinateur), en utilisant les fichiers locaux. Idéal pour des jeux de données de petite taille (< 1 Go).
+2. Mode MapReduce (-x mapreduce) :
+   * Objectif : Pour la production, sur de très grands volumes de données.
+   * Fonctionnement : Pig traduit le script en jobs MapReduce et les exécute sur un cluster Hadoop. C'est le mode par défaut.
+Vous pouvez interagir avec Pig via :
+* Le Grunt Shell : Une interface de commande interactive pour tester des commandes une par une.
+* Les Scripts (.pig) : Des fichiers texte contenant une séquence de commandes Pig Latin, pour automatiser des traitements.
+Chapitre 5 : Structure d'un Script Pig Latin (ETL)
+Un script Pig suit généralement un flux ETL (Extract, Transform, Load) :
+1. LOAD (Charger) : C'est la première étape. On charge les données depuis une source (généralement un fichier sur HDFS) dans une relation (une variable Pig, qui est un Bag). On peut spécifier le format et le schéma (la structure des colonnes).
+2. TRANSFORM (Transformer) : C'est le cœur du script. On applique une série d'opérations pour nettoyer, filtrer, joindre, regrouper et agréger les données.
+3. DUMP / STORE (Afficher / Stocker) :
+   * DUMP : Affiche le résultat directement à l'écran (utile pour le débogage).
+   * STORE : Sauvegarde le résultat final dans un fichier sur HDFS.
+Chapitre 6 : Opérateurs et Fonctions Clés
+Pig Latin fournit un riche ensemble d'opérateurs pour transformer les données.
+Opérateurs de base :
+* FILTER : Sélectionne des lignes (tuples) en fonction d'une condition.
+* FOREACH ... GENERATE : Parcourt chaque ligne d'un Bag et génère de nouvelles données. C'est utilisé pour la projection (sélectionner des colonnes) et la création de nouvelles colonnes.
+* GROUP : Regroupe les lignes qui ont la même valeur dans une ou plusieurs colonnes.
+* ORDER BY : Trie les données selon une ou plusieurs colonnes.
+* JOIN : Combine des données de deux relations (tables) sur la base d'une clé commune.
+Fonctionnalités avancées :
+* Opérateur ternaire (condition ? val_si_vrai : val_si_faux) : Pour des évaluations conditionnelles simples.
+* CASE : Pour des logiques conditionnelles multiples (similaire à switch ou if-elif-else).
+* FLATTEN : Une fonction très puissante pour "aplatir" des structures de données imbriquées. Par exemple, transformer un tuple contenu dans un autre tuple en champs de premier niveau.
+* Fonctions de chaînes de caractères :
+   * CONCAT : Concatène (assemble) des chaînes de caractères.
+   * SUBSTRING : Extrait une partie d'une chaîne.
+   * TOKENIZE : Découpe un texte en mots (tokens).
+* Fonctions mathématiques : COUNT, AVG (moyenne), SUM (somme), MIN, MAX.
+Annexe : Commandes Techniques et Syntaxe Utile
+Voici une liste des commandes techniques vues dans le document, avec des commentaires explicatifs.
+-- --------------------------------------------------------
+-- 1. MODES DE LANCEMENT DE PIG
+-- --------------------------------------------------------
+
+-- Lancer un script en mode local (pour tester sur votre machine)
+pig -x local mon_script.pig
+
+-- Lancer un script en mode distribué sur le cluster Hadoop (mode par défaut)
+pig mon_script.pig
+
+-- Lancer le shell interactif Grunt
+pig
+
+-- --------------------------------------------------------
+-- 2. STRUCTURE DE BASE D'UN SCRIPT
+-- --------------------------------------------------------
+
+-- Étape 1: CHARGER les données d'un fichier CSV avec un séparateur ';'
+-- AS définit le schéma (nom et type des colonnes)
+clients = LOAD '/data/clients.csv' USING PigStorage(';') AS (id:int, nom:chararray, ville:chararray);
+
+-- Étape 2: TRANSFORMER les données
+-- Filtrer pour ne garder que les clients de Paris
+clients_paris = FILTER clients BY ville == 'Paris';
+
+-- Regrouper les clients par ville
+clients_par_ville = GROUP clients BY ville;
+
+-- Pour chaque client, créer un nouveau statut 'Adulte' ou 'Mineur'
+profils = FOREACH clients GENERATE nom, (age >= 18 ? 'Adulte' : 'Mineur') AS statut;
+
+-- Calculer le nombre de clients et l'âge moyen par ville
+stats_ville = FOREACH clients_par_ville GENERATE group AS ville, COUNT(clients) AS nb_clients, AVG(clients.age) AS age_moyen;
+
+-- Étape 3: AFFICHER ou STOCKER les résultats
+-- Afficher le contenu de la variable 'clients_paris' à l'écran
+DUMP clients_paris;
+
+-- Stocker le résultat dans un nouveau dossier sur HDFS
+STORE stats_ville INTO '/resultats/stats_clients' USING PigStorage(',');
+
+-- --------------------------------------------------------
+-- 3. GESTION DES SCRIPTS ET PARAMÈTRES
+-- --------------------------------------------------------
+
+-- Exécuter un script depuis le Grunt shell
+run mon_script.pig
+
+-- Exécuter un script avec des paramètres. Utile pour rendre les scripts réutilisables.
+-- Le script 'temp_moy_year.pig' utilise $annee et $categorie
+grunt> run -param annee=2011 -param categorie=3 temp_moy_year_cat.pig
+
+-- --------------------------------------------------------
+-- 4. FONCTIONNALITÉS AVANCÉES
+-- --------------------------------------------------------
+
+-- Aplatir un tuple 'info' qui contient nom et prénom
+-- Avant: (1, (Dupont, Jean))
+-- Après: (1, Dupont, Jean)
+adresses_aplaties = FOREACH adresses GENERATE id, FLATTEN(info);
+
+-- Découper une ligne de texte en mots. TOKENIZE crée un bag de tuples, chaque tuple contenant un mot.
+-- ex: 'le ciel est bleu' -> {('le'), ('ciel'), ('est'), ('bleu')}
+mots = FOREACH lignes GENERATE TOKENIZE(ligne_de_texte) as mot;

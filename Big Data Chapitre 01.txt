@@ -1,0 +1,71 @@
+﻿Chapitre 1 : Introduction au Big Data
+Ce chapitre explique pourquoi le Big Data est devenu si important.
+* Limites des anciens systèmes : Les systèmes de gestion de bases de données traditionnels (SGBDR), comme Oracle ou MySQL, ne sont plus suffisants. Pourquoi ?
+   * Architecture centralisée (ou monolithique) : Tout passe par un seul point, ce qui crée des blocages (goulots d'étranglement) quand il y a trop de données à traiter.
+   * Coût élevé : Augmenter la puissance d'une seule machine (scalabilité verticale) coûte très cher.
+   * Performances réduites : Avec de gros volumes de données, les recherches et les jointures entre tables deviennent très lentes.
+   * Manque de flexibilité : Ils sont conçus pour des données bien organisées (structurées) et ont du mal à gérer la variété des données d'aujourd'hui (textes, images, etc.).
+* Les nouveaux défis : Les systèmes modernes doivent gérer :
+   * La concurrence : Des milliers d'utilisateurs en même temps.
+   * Le Théorème CAP : C'est un principe fondamental qui dit qu'un système distribué doit faire un choix entre la Cohérence (tous les utilisateurs voient la même chose), la Disponibilité (le système répond toujours) et la Tolérance aux pannes. Il est impossible d'avoir les trois en même temps.
+   * Les données non-structurées : Environ 80 à 90% des données actuelles ne sont pas organisées dans des tables (emails, vidéos, publications sur les réseaux sociaux).
+* Les causes de la transformation numérique : Plusieurs facteurs expliquent l'explosion des données :
+   * Technologiques : Internet, les smartphones, les réseaux sociaux et les objets connectés (IoT) génèrent une quantité énorme de données chaque seconde.
+   * Économiques : Le coût du stockage a chuté de manière spectaculaire, et la puissance de calcul a augmenté (Loi de Moore). Le (Cloud Computing) a rendu les infrastructures puissantes accessibles à tous.
+* L'émergence du Big Data : Des publications clés de Google sur son système de fichiers (Google File System) en 2003 et sur (MapReduce) en 2004 ont jeté les bases. Hadoop a été créé en 2006, suivi par les bases de données (NoSQL).
+Chapitre 2 : Comprendre le Big Data avec le Cadre des 5V
+
+
+Définition du Big Data : Le Big Data désigne un volume massif de données, structurées ou non, caractérisé par les 5V : Volume (quantité), Vélocité (vitesse), Variété (diversité), Véracité (fiabilité), et Valeur (utilité des informations extraites).   Ces données sont analysées pour extraire des informations utiles, souvent en temps réel, à l’aide d’outils avancés. 
+
+
+Le Big Data est souvent défini par les "5V", qui sont ses caractéristiques principales. 
+1. Volume : Il s'agit de la taille immense des données, qui se compte en (téraoctets) ou même en (zettaoctets).
+   * Solution : Les (architectures distribuées) qui répartissent les données et le traitement sur de nombreuses machines standards.
+2. Vélocité (Vitesse) : C'est la vitesse à laquelle les données sont créées et doivent être traitées, souvent en temps réel.
+   * Solution : Les (frameworks de traitement en flux continu) comme Spark Streaming, qui analysent les données "à la volée".
+3. Variété : Les données viennent sous de nombreuses formes :
+   * Structurées : Données de bases de données classiques.
+   * Semi-structurées : Fichiers (JSON, XML).
+   * Non-structurées : Textes, images, vidéos.
+   * Solution : Des systèmes de stockage qui acceptent tous les types de données sans imposer de structure rigide à l'avance (schema-on-read).
+4. Véracité : C'est la fiabilité et la qualité des données. Avec autant de sources, il est difficile de s'assurer que les données sont exactes.
+   * Solution : Des processus automatiques pour nettoyer, valider et gérer l'incertitude des données.
+5. Valeur : C'est le but final du Big Data. L'idée n'est pas juste de stocker des données, mais de les transformer en informations utiles pour prendre de meilleures décisions et créer des avantages (par exemple, réduire les fraudes, prédire les besoins de maintenance).
+   * Solution : Des outils d'(analytique avancée) pour découvrir des tendances cachées (patterns).
+Idées fausses sur le Big Data :
+* Le Big Data ne concerne pas seulement le volume.
+* Le Big Data n'est pas synonyme de Hadoop.
+* Avoir plus de données ne garantit pas de meilleurs résultats (la qualité est plus importante).
+* Le Big Data n'est pas réservé qu'aux grandes entreprises.
+Chapitre 3 : Applications Concrètes du Big Data
+Le Big Data est utilisé dans de nombreux secteurs pour résoudre des problèmes concrets.
+* Secteur Financier :
+   * Détection de fraude en temps réel : Analyser des milliards de transactions pour repérer des activités suspectes instantanément.
+   * (Scoring de crédit) avancé : Utiliser des milliers de points de données alternatifs (comportement en ligne, etc.) pour évaluer le risque d'un prêt.
+* Santé et Médecine :
+   * Médecine prédictive personnalisée : Créer des "jumeaux numériques" de patients pour simuler des traitements et prédire les risques de maladies.
+   * Accélérer la recherche pharmaceutique : Analyser des données massives pour découvrir de nouveaux médicaments plus rapidement (comme cela a été fait pour le COVID-19).
+* Commerce et Distribution :
+   * Personnalisation en temps réel : Envoyer des offres ciblées à un client dès qu'il entre dans un magasin.
+   * Gestion prédictive des stocks : Prévoir la demande future en analysant la météo, les tendances sur les réseaux sociaux, etc., pour éviter les ruptures de stock.
+* Marketing et Publicité :
+   * Analyse du parcours client : Comprendre comment les clients interagissent avec une marque sur tous les canaux (web, mobile, magasin).
+   * Publicité (programmatique) : Acheter des espaces publicitaires via des enchères automatisées en temps réel, ciblées sur le profil de chaque visiteur.
+
+
+
+
+
+
+
+
+Commandes et Outils Techniques Mentionnés
+Le document introduit plusieurs technologies qui seront étudiées plus en détail. Voici les principales :
+* Hadoop : Un écosystème open-source pour stocker et traiter de très grands ensembles de données de manière distribuée.
+   * HDFS (Hadoop Distributed File System) : Le système de fichiers de Hadoop, conçu pour stocker de gros fichiers sur plusieurs machines.
+   * YARN (Yet Another Resource Negotiator) : Le gestionnaire de ressources de Hadoop, qui alloue les ressources de calcul (CPU, mémoire) aux applications.
+* MapReduce : Un modèle de programmation pour traiter de grandes quantités de données en parallèle. C'est le cœur historique de Hadoop.
+* Pig : Un langage de haut niveau qui permet de créer plus facilement des programmes MapReduce.
+* Hive : Un système qui permet d'utiliser un langage de type SQL pour interroger les données stockées dans Hadoop, ce qui le rend accessible aux analystes de données.
+* Bases de données NoSQL : Une catégorie de bases de données qui ne suivent pas le modèle relationnel traditionnel. Elles sont plus flexibles et mieux adaptées à la variété et au volume du Big Data. Exemples : MongoDB, Cassandra.

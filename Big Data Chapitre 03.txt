@@ -1,0 +1,117 @@
+﻿Chapitre 1 : Introduction au Big Data et à Hadoop
+Le Big Data représente des ensembles de données si volumineux et complexes qu'ils ne peuvent pas être gérés par les outils traditionnels. Pour faire face à ces défis, des solutions comme Hadoop ont été créées.
+1.1. Les défis du Big Data (au-delà des 5V)
+* Stockage et Traitement : Il faut une grande capacité pour stocker les données et une forte performance pour les analyser.
+* Variété des données : Gérer des données de différents types (hétérogénéité).
+* Accès et Sécurité : Assurer un accès rapide (faible latence), une disponibilité continue (continuité de service) et la sécurité des informations.
+1.2. Les différentes solutions pour le Big Data
+* Solutions Traditionnelles : Des bases de données comme Oracle ou Teradata, qui sont puissantes mais chères et peu flexibles pour les données non structurées. Elles garantissent des transactions fiables (ACID - Atomicité, Cohérence, Isolation, Durabilité).
+* Approches NoSQL : Plus flexibles et conçues pour l'échelle (scalabilité horizontale). Exemples : MongoDB, Cassandra.
+* Plateformes Cloud : Services "prêts à l'emploi" comme Google BigQuery ou Amazon Redshift. Très flexibles mais peuvent coûter cher et créer une dépendance (lock-in).
+* Frameworks Open-Source : Outils comme Hadoop, Spark et Flink qui offrent un contrôle total et sont économiques, mais demandent plus d'expertise technique.
+1.3. Pourquoi choisir Hadoop ?
+Hadoop est une solution très populaire car :
+* C'est une solution complète : Il gère à la fois le stockage (avec HDFS) et le traitement des données (avec MapReduce/YARN).
+* Il est mature et stable : C'est le premier grand framework du Big Data, donc il est très éprouvé.
+* Il est économique en ressources : Il utilise moins de mémoire vive (RAM) que des solutions comme Spark pour certaines tâches.
+* Il est la base pour d'autres outils : Spark et Flink peuvent fonctionner par-dessus Hadoop, en utilisant son système de stockage.
+
+
+Chapitre 2 : Les Composants Fondamentaux de l'Écosystème Hadoop
+L'écosystème Hadoop est composé de plusieurs éléments qui travaillent ensemble. L'ensemble des machines forme un cluster, qui est organisé en racks (armoires de serveurs). Chaque machine est un nœud.
+2.1. HDFS (Hadoop Distributed File System) - Le Stockage
+C'est le système de fichiers distribué de Hadoop. Il permet de stocker des fichiers très volumineux sur plusieurs machines.
+* Fonctionnement : Il suit un modèle maître-esclave.
+   * NameNode (nœud maître) : C'est le cerveau. Il sait où chaque morceau de fichier est stocké (gestion des métadonnées). Pour la sécurité, il y a souvent un Standby NameNode en cas de panne.
+   * DataNodes (nœuds esclaves) : Ce sont les ouvriers. Ils stockent les blocs de données réels.
+* Fiabilité : Les fichiers sont découpés en blocs (ex: 128 Mo) qui sont copiés et répartis sur plusieurs machines. Si une machine tombe en panne, les données ne sont pas perdues.
+2.1.1. Le fonctionnement interne du NameNode : FsImage, EditLog et Secondary NameNode
+Pour ne jamais perdre les informations sur l'emplacement des fichiers (les métadonnées), le NameNode utilise un mécanisme robuste.
+* FsImage (FileSystem Image) :
+   * Quoi ? C'est une photographie complète de l'état du système de fichiers à un instant T. Il contient toute l'arborescence des fichiers, les permissions, et quel bloc appartient à quel fichier.
+   * Commentaire : Au démarrage, le NameNode charge ce fichier en mémoire RAM pour avoir une vue d'ensemble rapide. Cependant, créer un FsImage est une opération lourde.
+* EditLog (Journal des modifications) :
+   * Quoi ? C'est un journal de bord qui enregistre, une par une, toutes les modifications effectuées sur le système de fichiers après la dernière FsImage (création, suppression, renommage de fichier...).
+   * Commentaire : Écrire dans ce journal est très rapide. Cela évite d'avoir à recréer une FsImage à chaque petit changement.
+
+
+
+
+* Secondary NameNode (L'assistant du maître) :
+   * Quoi ? C'est un nœud assistant dont le rôle principal est de gérer le processus de checkpointing.
+   * Commentaire : Attention, son nom est trompeur ! Le Secondary NameNode n'est pas un remplaçant du NameNode en cas de panne (ça, c'est le rôle du Standby NameNode). Sa seule fonction est de fusionner périodiquement le FsImage et l'EditLog pour créer un nouveau FsImage à jour. Cela permet de décharger le NameNode principal d'une tâche lourde et d'éviter que le fichier EditLog ne devienne trop volumineux.
+   * Le processus de Checkpoint :
+Périodiquement, le Secondary NameNode récupère le FsImage et l'EditLog du NameNode principal. Il fusionne les deux pour créer un nouveau FsImage compact, puis le renvoie au NameNode. Ce dernier peut alors l'utiliser pour le prochain démarrage et commencer un nouvel EditLog.
+   * Standby NameNode :
+   * Quoi ? Le Standby NameNode est un nœud de secours qui sert de copie exacte et passive du NameNode principal (actif). Son unique but est d'assurer la haute disponibilité (High Availability) du cluster Hadoop. 
+   * Commentaire : En cas de panne du NameNode actif, le Standby NameNode peut prendre le relais presque instantanément, évitant ainsi que le cluster ne devienne inaccessible.
+
+→ Pour résumer :
+      * NameNode Actif : Gère le cluster.
+      * Standby NameNode : Reste synchronisé en arrière-plan, prêt à prendre la relève en cas de défaillance. C'est le véritable "backup" du maître.
+      * Secondary NameNode : N'est pas un backup, c'est un assistant qui aide à la maintenance des fichiers de métadonnées (FsImage et EditLog).
+
+
+
+
+
+
+
+
+
+
+
+
+2.2. YARN (Yet Another Resource Negotiator) - La Gestion des Ressources
+YARN est le gestionnaire du cluster. C'est lui qui distribue les tâches de calcul aux différentes machines.
+      * Fonctionnement :
+      * ResourceManager (maître) : Il gère l’affectation des tâches et l'allocation des ressources de calcul pour tout le cluster.
+      * NodeManagers (esclaves) : Présents sur chaque nœud, ils exécutent les tâches et rapportent leur état au ResourceManager.
+      * Flexibilité : YARN permet de faire tourner différents types d'applications sur le même cluster (MapReduce, Spark, etc.).
+2.3. MapReduce - Le Modèle de Traitement
+C'est le modèle de programmation original de Hadoop pour traiter de grands volumes de données en parallèle. Un traitement se fait en deux phases :
+      * Phase Map : Trie et filtre les données.
+      * Phase Reduce : Agrège et résume les résultats de la phase Map.
+Chapitre 3 : Les Outils d'Analyse et de Traitement de l'Écosystème
+Autour de HDFS et YARN, de nombreux outils ont été développés pour faciliter l'utilisation de Hadoop.
+      * Pig :
+      * Quoi ? Une plateforme pour créer des programmes d'analyse de données.
+      * Comment ? Utilise un langage simple appelé Pig Latin, qui est ensuite traduit automatiquement en tâches MapReduce. Simplifie l'écriture de traitements complexes.
+      * Hive :
+      * Quoi ? Un système qui permet de faire des requêtes sur les données stockées dans Hadoop comme si elles étaient dans une base de données classique.
+      * Comment ? Utilise un langage appelé HiveQL, très similaire au SQL. Idéal pour les analystes de données familiers avec le SQL. Il gère un Métastore pour stocker les informations sur la structure des données (schémas des tables).
+
+
+      * HBase :
+      * Quoi ? Une base de données NoSQL qui fonctionne sur HDFS.
+      * Comment ? Conçue pour un accès en temps réel (lecture/écriture très rapide) à d'énormes volumes de données. Elle est organisée en colonnes, ce qui est très efficace pour certains types de requêtes.
+      * Autres outils importants :
+      * Sqoop : Pour transférer des données entre Hadoop et des bases de données traditionnelles.
+      * Flume : Pour collecter de grandes quantités de données en temps réel (logs, événements, etc.).
+      * ZooKeeper : Pour coordonner les différents services dans un environnement distribué.
+      * Oozie : Pour planifier et organiser l'exécution de multiples tâches (workflows).
+      * Ambari : Pour installer, gérer et surveiller un cluster Hadoop facilement.
+Chapitre 4 : Évolution et Fournisseurs d'Hadoop
+4.1. Les principaux fournisseurs (Distributions Hadoop)
+      * Apache Hadoop : La version de base, open-source et gratuite, mais sans support commercial.
+      * Cloudera : Le fournisseur le plus connu. Propose une plateforme qui mélange des outils open-source et des outils propriétaires pour faciliter la gestion. Elle réduit la complexité opérationnelle et les risques, permettant aux entreprises de se concentrer sur l'analyse de leurs données plutôt que sur la gestion de l'infrastructure. A fusionné avec Hortonworks.
+      * Hortonworks (maintenant Cloudera) : Était une distribution 100% open-source avec un support professionnel.
+      * MapR (maintenant partie de HPE) : Une version propriétaire optimisée pour de très hautes performances.
+
+
+
+
+
+
+
+
+
+
+Commandes et Instructions Techniques
+Le document ne contient pas de commandes à exécuter directement, mais il décrit des langages et des concepts clés :
+      * SQL (Structured Query Language) :
+      * Utilisation : Langage standard pour interroger les bases de données relationnelles.
+      * Commentaire : Hive utilise HiveQL, une variante de SQL, pour permettre aux analystes d'interroger les données sur Hadoop sans apprendre un nouveau langage complexe.
+      * Pig Latin :
+      * Utilisation : Langage de script de haut niveau utilisé par Pig pour décrire des flux de transformation de données.
+      * Commentaire : Un script Pig Latin (par exemple, LOAD, FILTER, GROUP, STORE) est plus simple à écrire qu'un programme MapReduce en Java et est automatiquement compilé par Pig.

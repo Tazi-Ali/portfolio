@@ -1,0 +1,130 @@
+﻿Chapitre 4 : Le Système de Fichiers HDFS
+Ce document résume les points essentiels du système de fichiers distribué de Hadoop (HDFS). Il explique son fonctionnement, son architecture, et comment interagir avec lui. L'objectif est de simplifier les concepts pour une meilleure compréhension et une révision efficace.
+Chapitre 1 : Les Bases de HDFS
+HDFS (Hadoop Distributed File System) est le système de stockage principal de l'écosystème Hadoop. Il est conçu pour gérer de très grands volumes de données (Big Data) sur un réseau de plusieurs machines standards (un cluster).
+Concepts Clés :
+1. Stockage Distribué : Au lieu de stocker un énorme fichier sur une seule machine, HDFS le découpe et répartit les morceaux sur plusieurs ordinateurs. Pour l'utilisateur, tout apparaît comme un seul et unique système de fichiers.
+2. Blocs de Données :
+   * Les fichiers sont divisés en gros blocs de taille fixe, généralement 128 Mo.
+   * Avantages :
+      * Moins de métadonnées (informations sur les données) à gérer : Un fichier de 10 Go ne nécessite que 80 blocs, ce qui est plus simple à suivre pour le système.
+      * Transferts plus rapides : Le système établit moins de connexions réseau, ce qui optimise la vitesse.
+      * Adapté au Big Data : Parfait pour l'analyse de très gros fichiers.
+3. Réplication (Copie de sécurité) :
+   * Pour éviter de perdre des données en cas de panne d'une machine, HDFS copie chaque bloc de données sur plusieurs ordinateurs (généralement 3 copies au total). C'est le facteur de réplication.
+   * Stratégie de placement :
+      * Copie 1 : Sur une machine choisie au hasard dans un rack (une armoire de serveurs).
+      * Copie 2 : Sur une autre machine, mais dans le même rack.
+      * Copie 3 : Sur une machine dans un rack différent.
+   * Objectif : Assurer la sécurité des données tout en optimisant les performances du réseau.
+
+
+
+
+4. Haute Disponibilité et Tolérance aux Pannes :
+   * HDFS est conçu pour que le système continue de fonctionner même si des composants (disques durs, serveurs) tombent en panne.
+   * Il détecte automatiquement les pannes grâce à des signaux réguliers appelés "Heartbeats" (battements de cœur). Si un serveur n'envoie plus de signal, il est considéré comme défaillant.
+   * Le système crée alors automatiquement de nouvelles copies des blocs qui étaient sur la machine en panne pour maintenir le facteur de réplication.
+5. Évolutivité (Scalabilité) : On peut facilement augmenter la capacité de stockage du cluster en ajoutant de nouvelles machines sans interrompre le service.
+6. Haut Débit (Vitesse d'accès) : HDFS est optimisé pour lire de grands fichiers de manière séquentielle (du début à la fin) très rapidement, ce qui est idéal pour les analyses de données massives.
+Chapitre 2 : L'Architecture de HDFS
+HDFS fonctionne sur un modèle "Maître-Esclave".
+1. Le NameNode (Le Maître) :
+   * C'est le cerveau du système. Il ne stocke pas les données des fichiers eux-mêmes, mais toutes les informations les concernant, appelées métadonnées.
+   * Rôles principaux :
+      * Gérer l'arborescence des fichiers (quels fichiers et dossiers existent, où ils se trouvent).
+      * Savoir quels blocs composent chaque fichier et sur quelles machines (DataNodes) ces blocs sont stockés.
+   * Pour fonctionner, il utilise deux fichiers critiques :
+      * FsImage : Un "instantané" (une photo) de toute l'arborescence des fichiers à un moment donné.
+      * EditLog : Un journal qui enregistre toutes les modifications (ajout, suppression de fichier) effectuées depuis le dernier instantané.
+2. Les DataNodes (Les Esclaves) :
+   * Ce sont les machines qui stockent physiquement les blocs de données.
+   * Rôles principaux :
+      * Lire et écrire les blocs de données sur demande.
+      * Envoyer régulièrement des "Heartbeats" au NameNode pour signaler qu'ils sont en bonne santé.
+      * Envoyer des rapports de blocs pour que le NameNode sache ce qu'ils stockent.
+
+   3. Le NameNode Secondaire :
+   * Attention : Ce n'est PAS un NameNode de secours.
+   * Son rôle principal est d'aider le NameNode principal en fusionnant périodiquement le fichier FsImage et le journal EditLog pour créer un nouveau FsImage à jour. Cela évite que le fichier EditLog ne devienne trop volumineux, ce qui ralentirait le redémarrage du NameNode.
+Chapitre 3 : L'Architecture à Haute Disponibilité (HA)
+Le problème de l'architecture de base est que si le NameNode (le maître) tombe en panne, tout le système devient inaccessible. C'est ce qu'on appelle un Point de Défaillance Unique (SPOF - Single Point of Failure).
+Pour résoudre ce problème, Hadoop 2.x a introduit une architecture Haute Disponibilité (HA).
+Composants :
+   1. Deux NameNodes :
+   * Un NameNode Actif : Celui qui gère le cluster.
+   * Un NameNode Passif (Standby) : Une copie exacte de l'actif, prêt à prendre le relais instantanément en cas de panne.
+   2. JournalNodes (Nœuds de Journal) :
+   * Un groupe de serveurs (généralement 3 ou 5) dont le seul rôle est de stocker le journal des modifications (EditLog).
+   * Le NameNode actif écrit les modifications dans les JournalNodes, et le NameNode passif les lit en temps réel pour rester synchronisé.
+   3. ZooKeeper :
+   * Un service de coordination qui gère l'élection du NameNode actif et surveille son état. Si l'actif tombe en panne, ZooKeeper déclenche le basculement (failover) vers le passif.
+   4. ZK Failover Controller (ZKFC) :
+   * Un petit processus qui s'exécute sur chaque machine de NameNode. Il communique avec ZooKeeper pour gérer le processus de basculement.
+Chapitre 4 : Opérations de Lecture et Écriture
+Écrire un fichier dans HDFS :
+   1. Le client contacte le NameNode en disant "Je veux écrire un fichier".
+   2. Le NameNode vérifie les autorisations et répond avec la liste des DataNodes où le client doit envoyer les blocs du fichier.
+   3. Le client envoie le premier bloc au premier DataNode de la liste.
+   4. Ce DataNode copie le bloc, puis le transmet au deuxième DataNode, qui fait de même et le transmet au troisième. C'est ce qu'on appelle un pipeline de réplication.
+   5. Le processus se répète pour tous les blocs du fichier.
+Lire un fichier depuis HDFS :
+   1. Le client contacte le NameNode en disant "Je veux lire ce fichier".
+   2. Le NameNode lui renvoie la liste des emplacements (les DataNodes) pour chaque bloc du fichier.
+   3. Le client contacte directement les DataNodes concernés pour récupérer chaque bloc.
+   4. Si un DataNode est indisponible, le client essaie simplement de récupérer le bloc depuis une autre de ses copies sur un autre DataNode.
+Chapitre 5 : Commandes de Base HDFS
+Voici les commandes essentielles pour interagir avec HDFS via la ligne de commande. Elles commencent toutes par hadoop fs.
+# ============================================
+# Dialoguer avec HDFS (Envoyer/Récupérer)
+# ============================================
+
+# Envoyer un fichier de votre machine locale VERS HDFS
+# -copyFromLocal ou -put font la même chose.
+hadoop fs -copyFromLocal /chemin/local/fichier.txt /chemin/hdfs/
+hadoop fs -put /chemin/local/fichier.txt /chemin/hdfs/
+
+# Récupérer un fichier DE HDFS vers votre machine locale
+# -copyToLocal ou -get font la même chose.
+hadoop fs -copyToLocal /chemin/hdfs/fichier.txt /chemin/local/
+hadoop fs -get /chemin/hdfs/fichier.txt /chemin/local/
+
+
+# ============================================
+# Parcourir les Données
+# ============================================
+
+# Lister les fichiers et dossiers dans un répertoire HDFS
+# (similaire à 'ls' sur Linux)
+hadoop fs -ls /user/cloudera
+
+# Afficher le contenu d'un fichier HDFS
+# (similaire à 'cat' sur Linux)
+hadoop fs -cat /user/cloudera/fichier.txt
+
+
+# ============================================
+# Modifier les Données
+# ============================================
+
+# Créer un nouveau répertoire
+hadoop fs -mkdir /user/nouveau_repertoire
+
+# Créer une arborescence complète de répertoires (si les parents n'existent pas)
+hadoop fs -mkdir -p /user/rep1/rep2/rep3
+
+# Supprimer un fichier
+hadoop fs -rm /chemin/hdfs/fichier_a_supprimer.txt
+
+# Supprimer un répertoire (et tout son contenu)
+# -r signifie 'récursif'
+hadoop fs -rm -r /chemin/hdfs/repertoire_a_supprimer
+
+# Copier un fichier ou un répertoire à l'intérieur de HDFS
+hadoop fs -cp /source/hdfs/fichier.txt /destination/hdfs/
+
+# Déplacer (ou renommer) un fichier ou un répertoire à l'intérieur de HDFS
+hadoop fs -mv /source/hdfs/fichier.txt /destination/hdfs/nouveau_nom.txt
+
+# Ajouter le contenu d'un fichier local à la fin d'un fichier dans HDFS
+hadoop fs -appendToFile /chemin/local/a_ajouter.txt /chemin/hdfs/destination.txt
